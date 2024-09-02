@@ -10,6 +10,8 @@ from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 from langchain_core.output_parsers import StrOutputParser
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 import uuid
 import time 
 
@@ -27,7 +29,6 @@ model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
 Prompt_Template = """ 
 You are an intelligent assistant that classifies input based on department maintenance and staff behavior. Analyze the given text or image and determine the classification accurately, focusing on maintenance quality and staff behavior. Provide a detailed explanation for your classification. Give me a one-word answer.
 Query:\n {query}\n
-
 Answer:
 """
 
@@ -42,8 +43,6 @@ output_parser=StrOutputParser()
 # Combining the prompt and model into a runnable sequence
 chain = RunnableSequence(prompt, model,output_parser)
 
-# Invoke the chain with the input data
-result = chain.invoke({"query": "train is not clean"})
 
 
 app = FastAPI(
@@ -52,11 +51,21 @@ app = FastAPI(
     description="API server for railway"
 )
 
-add_routes(
-    app,
-    chain,
-    path="/simple"
-)
+class QueryModel(BaseModel):
+    query: str
+    key: str
+
+# Define a route for classification
+@app.post("/classify")
+async def classify_query(query_model: QueryModel):
+    # Validate the request key
+    if query_model.key != os.getenv("EXPECTED_REQUEST_KEY"):
+        raise HTTPException(status_code=403, detail="Unauthorized request key")
+
+    # Invoke the LangChain model with the query
+    result = chain.invoke({"query": query_model.query})
+    return {"classification": result}
+
 ########################## PHOTO ###################################################################
 
 from fastapi import FastAPI, UploadFile, File
@@ -211,4 +220,6 @@ async def describe_video(file: UploadFile = File(...)):
     except Exception as e:
         logging.error(f"Error during video processing: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
+    
+
     
