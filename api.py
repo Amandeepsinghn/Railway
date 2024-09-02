@@ -1,5 +1,5 @@
 from langserve import add_routes
-from fastapi import FastAPI,Form
+from fastapi import FastAPI, HTTPException, UploadFile, File
 import uvicorn 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import os
@@ -14,6 +14,8 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uuid
 import time 
+import requests
+from pydantic import BaseModel
 
 load_dotenv()
 os.getenv("GOOGLE_API_KEY")
@@ -98,25 +100,29 @@ You are an image classification model. Analyze the image provided and classify i
         Provide only the classification category in one word: "staff behaviour," "maintenance," "cleanliness," or "none."
 """
 
+class ImageURLModel(BaseModel):
+    url: str
 
 # Function to handle image classification
 @app.post("/classify-image")
-async def classify_image(file: UploadFile = File(...)):
+async def classify_image(image_url:ImageURLModel):
     try:
-        image_bytes = await file.read()
-        image = Image.open(BytesIO(image_bytes))
-        # Generate classification result using the model
-        prompt=prompt_template_2
-        response = model_2.generate_content([prompt, image])
+        # Download image from URL
+        response = requests.get(image_url.url)
+        if response.status_code == 200:
+            image_bytes = response.content
+            image = Image.open(BytesIO(image_bytes))
 
+            # Generate classification result using the model
+            prompt = prompt_template_2
+            result = model_2.generate_content([prompt, image])
 
-        logging.info(f"Model response: {response}")
-        
-        # Process response
-        result=response.text
-
-
-        return JSONResponse(content={"classification": result})
+            logging.info(f"Model response: {result}")
+            
+            # Process and return response
+            return JSONResponse(content={"classification": result})
+        else:
+            raise HTTPException(status_code=response.status_code, detail="Failed to download image")
 
     except Exception as e:
         logging.error(f"Error during classification: {e}")
@@ -221,5 +227,6 @@ async def describe_video(file: UploadFile = File(...)):
         logging.error(f"Error during video processing: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
     
+
 
     
