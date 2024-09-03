@@ -28,7 +28,34 @@ model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
 
 # Define the prompt template
 Prompt_Template = """ 
-You are an intelligent assistant that classifies input based on department maintenance and staff behavior. Analyze the given text or image and determine the classification accurately, focusing on maintenance quality and staff behavior. Provide a detailed explanation for your classification. Give me a one-word answer.
+You are an expert in railway station operations and are familiar with the various departments that handle different types of issues. 
+Your task is to classify the given text into one of the following departments based on the concern mentioned:
+
+    Cleanliness - For issues related to cleanliness, waste management, or sanitation.
+    Staff Behaviour - For complaints or compliments about the behavior or attitude of railway staff.
+    Security - For concerns about safety, theft, or any security-related incidents.
+    Medical Assurance - For health-related emergencies, medical assistance, or availability of first-aid.
+    Ticketing - For issues related to ticket purchasing, booking, or cancellations.
+    Water Availability - For problems related to the availability or quality of drinking water.
+    Maintenance - For issues related to broken equipment, structural damage, malfunctioning facilities, or anything that requires repair or maintenance.
+    Other - For issues that do not fit into any of the above categories.
+
+Read the provided text carefully and classify it into the appropriate department. Only return the name of the department.
+
+Example:
+
+    Input: "The restrooms are really dirty, and there's trash everywhere."
+        Output: "Cleanliness"
+
+    Input: "I was not able to find any drinking water on platform 3."
+        Output: "Water Availability"
+
+    Input: "The security personnel were very helpful when I lost my bag."
+        Output: "Security"
+
+    Input: "The escalator is broken and needs repair."
+        Output: "Maintenance"
+
 Query:\n {query}\n
 Answer:
 """
@@ -81,20 +108,22 @@ import logging
 
 # Define the prompt template
 prompt_template_2 = """
-You are an image classification model. Analyze the image provided and classify it into one of the following categories: "staff behaviour," "maintenance," "cleanliness," or "none."
+You are an expert in railway station operations and have comprehensive knowledge of various departments that handle different types of issues. 
+You will be provided with an image related to concerns at a railway station. 
+The image will depict a scenario corresponding to a particular department. 
+Your task is to analyze the visual information in the image and classify the concern into one of the following departments:
 
-    Extract Information:
-        Describe the key elements and actions visible in the image.
-        Identify any notable objects, interactions, or text within the image.
+    Cleanliness - For images showing dirt, waste, unclean restrooms, or other sanitation issues.
+    Staff Behaviour - For images showing interactions between staff and passengers that may indicate positive or negative behavior.
+    Security - For images showing safety concerns, suspicious activities, security personnel, or incidents that might pose a security threat.
+    Medical Assurance - For images showing health emergencies, medical assistance situations, or first-aid stations.
+    Ticketing - For images showing ticket counters, queues, issues with ticket machines, or passengers having trouble with ticketing.
+    Water Availability - For images showing water stations, water fountains, or any indication of issues with water availability.
+    Maintenance - For images showing broken equipment, structural damage, malfunctioning facilities, or anything indicating the need for repair or maintenance.
+    Other - For images depicting issues that do not fit into the above categories.
 
-    Classification Criteria:
-        Staff Behaviour: If the image depicts interactions between staff members, customer service scenarios, or staff-related actions.
-        Maintenance: If the image shows maintenance activities, repair tasks, or equipment related to upkeep.
-        Cleanliness: If the image depicts aspects related to cleanliness, such as tidiness or sanitation.
-        None: If the image does not fit into any of the above categories.
-
-    Output:
-        Provide only the classification category in one word: "staff behaviour," "maintenance," "cleanliness," or "none."
+Analyze the image and return only the name of the department that best corresponds to the visual content of the image. 
+Do not return anything outside of the department name.
 """
 model_2 = genai.GenerativeModel(model_name="gemini-1.5-flash")
 
