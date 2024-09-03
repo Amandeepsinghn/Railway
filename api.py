@@ -133,11 +133,6 @@ You are an expert in railway station operations. Based on the provided image, ge
 model_2 = genai.GenerativeModel(model_name="gemini-1.5-flash")
 
 # Define the app and the input model
-app = FastAPI(
-    title="Railway Server",
-    version="1.0",
-    description="API server for railway"
-)
 
 class ImageURLModel(BaseModel):
     url: str
