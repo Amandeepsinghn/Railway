@@ -108,24 +108,36 @@ import logging
 
 # Define the prompt template
 prompt_template_2 = """
-You are an expert in railway station operations and have comprehensive knowledge of various departments that handle different types of issues. 
-You will be provided with an image related to concerns at a railway station. 
-The image will depict a scenario corresponding to a particular department. 
+You are an expert in railway station operations and have comprehensive knowledge of various departments that handle different types of issues.
+You will be provided with an image related to concerns at a railway station.
+The image will depict a scenario corresponding to a particular department.
 Your task is to analyze the visual information in the image and classify the concern into one of the following departments:
 
-    Cleanliness - For images showing dirt, waste, unclean restrooms, or other sanitation issues.
-    Staff Behaviour - For images showing interactions between staff and passengers that may indicate positive or negative behavior.
-    Security - For images showing safety concerns, suspicious activities, security personnel, or incidents that might pose a security threat.
-    Medical Assurance - For images showing health emergencies, medical assistance situations, or first-aid stations.
-    Ticketing - For images showing ticket counters, queues, issues with ticket machines, or passengers having trouble with ticketing.
-    Water Availability - For images showing water stations, water fountains, or any indication of issues with water availability.
-    Maintenance - For images showing broken equipment, structural damage, malfunctioning facilities, or anything indicating the need for repair or maintenance.
-    Other - For images depicting issues that do not fit into the above categories.
+**Cleanliness:** For images showing dirt, waste, unclean restrooms, or other sanitation issues.
+**Security:** For images showing safety concerns, suspicious activities, security personnel, or incidents that might pose a security threat.
+**Medical Assurance:** For images showing health emergencies, medical assistance situations, or first-aid stations.
+**Ticketing:** For images showing ticket counters, queues, issues with ticket machines, or passengers having trouble with ticketing.
+**Water Availability:** For images showing water stations, water fountains, or any indication of issues with water availability.
+**Maintenance:** For images showing broken equipment, structural damage, malfunctioning facilities, or anything indicating the need for repair or maintenance.
+**Other:** For images depicting issues that do not fit into the above categories.
 
-Analyze the image and return only the name of the department that best corresponds to the visual content of the image. 
+Analyze the image and return only the name of the department that best corresponds to the visual content of the image.
 Do not return anything outside of the department name.
 """
+
+# Define a prompt template for generating descriptions
+prompt_template_description = """
+You are an expert in railway station operations. Based on the provided image, generate a brief and informative description that summarizes the scene, focusing on key elements and possible concerns. Be concise and provide meaningful insights related to the scenario in the image.
+"""
+
 model_2 = genai.GenerativeModel(model_name="gemini-1.5-flash")
+
+# Define the app and the input model
+app = FastAPI(
+    title="Railway Server",
+    version="1.0",
+    description="API server for railway"
+)
 
 class ImageURLModel(BaseModel):
     url: str
@@ -133,18 +145,29 @@ class ImageURLModel(BaseModel):
 @app.post("/classify-image")
 async def classify_image(image_url: ImageURLModel):
     try:
-        # Directly use the url from the ImageURLModel instance
+        # Fetch the image from the provided URL
         response = requests.get(image_url.url)
-        image_bytes=BytesIO(response.content)
-        image=Image.open(image_bytes)
-        result=model_2.generate_content([prompt_template_2,image])
+        image_bytes = BytesIO(response.content)
+        image = Image.open(image_bytes)
 
-        classification_result = result.candidates[0].content.parts[0].text.strip()
-        return JSONResponse(content={"classification": classification_result})
+        # Classify the image
+        classification_result = model_2.generate_content([prompt_template_2, image])
+        classification_text = classification_result.candidates[0].content.parts[0].text.strip()
+
+        # Generate the description based on the image
+        description_result = model_2.generate_content([prompt_template_description, image])
+        description_text = description_result.candidates[0].content.parts[0].text.strip()
+
+        # Return both classification and description
+        return JSONResponse(content={
+            "classification": classification_text,
+            "description": description_text
+        })
         
     except Exception as e:
         logging.error(f"Error during classification: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
+    
 
     
 ####################################### Audio classification ##################################################
