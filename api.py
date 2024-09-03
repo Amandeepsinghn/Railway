@@ -15,7 +15,6 @@ from pydantic import BaseModel
 import uuid
 import time 
 import requests
-from pydantic import BaseModel
 
 load_dotenv()
 os.getenv("GOOGLE_API_KEY")
@@ -80,8 +79,6 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 import logging
 
-model_2= genai.GenerativeModel(model_name='gemini-1.5-flash')
-
 # Define the prompt template
 prompt_template_2 = """
 You are an image classification model. Analyze the image provided and classify it into one of the following categories: "staff behaviour," "maintenance," "cleanliness," or "none."
@@ -99,34 +96,27 @@ You are an image classification model. Analyze the image provided and classify i
     Output:
         Provide only the classification category in one word: "staff behaviour," "maintenance," "cleanliness," or "none."
 """
+model_2 = genai.GenerativeModel(model_name="gemini-1.5-flash")
 
 class ImageURLModel(BaseModel):
     url: str
 
-# Function to handle image classification
 @app.post("/classify-image")
-async def classify_image(image_url:ImageURLModel):
+async def classify_image(image_url: ImageURLModel):
     try:
-        # Download image from URL
+        # Directly use the url from the ImageURLModel instance
         response = requests.get(image_url.url)
-        if response.status_code == 200:
-            image_bytes = response.content
-            image = Image.open(BytesIO(image_bytes))
+        image_bytes=BytesIO(response.content)
+        image=Image.open(image_bytes)
+        result=model_2.generate_content([prompt_template_2,image])
 
-            # Generate classification result using the model
-            prompt = prompt_template_2
-            result = model_2.generate_content([prompt, image])
-
-            logging.info(f"Model response: {result}")
-            
-            # Process and return response
-            return JSONResponse(content={"classification": result})
-        else:
-            raise HTTPException(status_code=response.status_code, detail="Failed to download image")
-
+        classification_result = result.candidates[0].content.parts[0].text.strip()
+        return JSONResponse(content={"classification": classification_result})
+        
     except Exception as e:
         logging.error(f"Error during classification: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
+
     
 ####################################### Audio classification ##################################################
 model_3 =genai.GenerativeModel('models/gemini-1.5-flash')
@@ -226,7 +216,4 @@ async def describe_video(file: UploadFile = File(...)):
     except Exception as e:
         logging.error(f"Error during video processing: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
-    
 
-
-    
